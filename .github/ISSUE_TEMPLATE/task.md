@@ -15,5 +15,4 @@ What needs to be done?
 - [ ] Subtask 2
 
 ### Whom do you want to assign the task to?
-- [ ] Person 1
-- [ ] Person 2
+- [ ] Person 
