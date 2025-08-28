@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Hidden Message</title>
+    <script>
+        async function revealMessage() {
+            // NOTE: updated to include /app
+            let response = await fetch("/app/reveal");
+            let data = await response.json();
+            document.getElementById("message").innerText = data.message;
+        }
+    </script>
+</head>
+<body>
+    <h1>Welcome</h1>
+    <button onclick="revealMessage()">Reveal Secret</button>
+    <p id="message" style="color:purple; font-weight:bold;"></p>
+</body>
+</html>
