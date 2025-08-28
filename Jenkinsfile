@@ -1,29 +1,56 @@
 pipeline {
-    agent any  // Run on any available agent
+    agent any
 
     stages {
-        stage('Build') {
+        stage('Checkout') {
             steps {
-                echo 'Building the project...'
+                git branch: 'main',
+                    credentialsId: 'github-creds',
+                    url: 'https://github.com/alishbaaramzan/cloud-devops-lab-2025.git'
+            }
+        }
+
+        stage('Install Deps') {
+            steps {
+                sh '''
+                python3 -m pip install --upgrade pip
+                pip3 install flake8 pytest
+                '''
+            }
+        }
+
+        stage('Lint') {
+            steps {
+                sh 'flake8 app/ --exit-zero'
             }
         }
 
         stage('Test') {
             steps {
-                echo 'Running tests...'
+                sh 'pytest tests/ --maxfail=1 --disable-warnings -q || true'
             }
         }
 
         stage('Deploy') {
             steps {
-                echo 'Deploy stage (just for test)'
+                withCredentials([sshUserPrivateKey(credentialsId: 'ansible-key', keyFileVariable: 'SSH_KEY')]) {
+                    sh '''
+                    ansible-playbook \
+                      -i ansible/inventory/hosts.ini \
+                      ansible/playbooks/app.yml \
+                      --private-key $SSH_KEY
+                    '''
+                }
             }
         }
     }
 
     post {
-        always {
-            echo 'Pipeline finished!'
+        success {
+            echo 'Deployment successful'
+        }
+        failure {
+            echo 'Pipeline failed'
         }
     }
 }
