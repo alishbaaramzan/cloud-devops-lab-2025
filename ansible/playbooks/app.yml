@@ -94,6 +94,16 @@
         group: ubuntu
         mode: '0644'
 
+    - name: Copy Jenkins directory
+      copy:
+        src: ../../jenkins/
+        dest: /home/ubuntu/deployment/jenkins/
+        owner: ubuntu
+        group: ubuntu
+        mode: '0644'
+        directory_mode: '0755'
+
+
     - name: Stop any existing containers
       command: docker compose down
       args:

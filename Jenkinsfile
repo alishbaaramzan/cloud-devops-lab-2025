@@ -13,11 +13,14 @@ pipeline {
         stage('Install Deps') {
             steps {
                 sh '''
-                python3 -m pip install --upgrade pip
-                pip3 install flake8 pytest
+                    python3 -m venv venv
+                    . venv/bin/activate
+                    pip install --upgrade pip
+                    pip install -r requirements.txt
                 '''
             }
         }
+
 
         stage('Lint') {
             steps {
