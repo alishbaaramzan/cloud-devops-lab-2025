@@ -1,0 +1,66 @@
+server {
+    listen 80;
+    server_name _;
+
+    # Redirect root to /app
+    location = / {
+        return 302 /app/;
+    }
+
+    {% for backend in backends %}
+    {% if backend.name == "jenkins" %}
+    # Jenkins needs special handling
+    location = /jenkins {
+        return 302 /jenkins/;
+    }
+
+    location /jenkins/ {
+        # Pass through the /jenkins prefix (no trailing slash on proxy_pass)
+        proxy_pass http://{{ backend.ip }}:{{ backend.port }};
+        
+        # Standard proxy headers
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Server $host;
+        
+        # Jenkins-specific headers
+        proxy_set_header X-Forwarded-Port $server_port;
+        proxy_set_header X-Jenkins-CLI-Port $server_port;
+        
+        # Let Jenkins handle redirects naturally
+        proxy_redirect default;
+        
+        # Additional Jenkins-specific settings
+        proxy_read_timeout 90;
+        proxy_connect_timeout 90;
+        proxy_send_timeout 90;
+        
+        # Handle large file uploads
+        client_max_body_size 10m;
+    }
+    {% else %}
+    # Handle /{{ backend.name }} (without trailing slash)
+    location = /{{ backend.name }} {
+        return 302 /{{ backend.name }}/;
+    }
+
+    # Handle /{{ backend.name }}/ and all sub-paths
+    location /{{ backend.name }}/ {
+        proxy_pass http://{{ backend.ip }}:{{ backend.port }}/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Server $host;
+
+        # Handle redirects properly
+        proxy_redirect http://{{ backend.ip }}:{{ backend.port }}/ /{{ backend.name }}/;
+        proxy_redirect http://{{ backend.ip }}:{{ backend.port }} /{{ backend.name }};
+    }
+    {% endif %}
+    {% endfor %}
+}

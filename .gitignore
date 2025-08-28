@@ -1,0 +1,50 @@
+# =========================
+# Python
+# =========================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+*.log
+
+# =========================
+# Ansible
+# =========================
+*.retry
+ansible/vault.yml
+ansible/group_vars/all/*
+
+# =========================
+# Terraform
+# =========================
+*.tfstate
+*.tfstate.backup
+.terraform/
+.terraform.lock.hcl
+crash.log
+
+# =========================
+# Keys & Secrets
+# =========================
+*.pem
+*.key
+*.crt
+*.secrets
+init.sql
+
+# =========================
+# Docker
+# =========================
+*.pid
+*.sock
+
+# =========================
+# System / IDE
+# =========================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp

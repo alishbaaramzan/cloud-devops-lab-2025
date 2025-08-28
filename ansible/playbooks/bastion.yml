@@ -1,0 +1,57 @@
+---
+- name: Configure bastion as reverse proxy
+  hosts: bastion
+  become: true
+  vars:
+    backends:
+      - { name: "app",     ip: "10.0.2.209", port: 8080 }
+      - { name: "jenkins", ip: "10.0.2.209", port: 8081 }
+      - { name: "grafana", ip: "10.0.2.209", port: 3000 }
+
+  tasks:
+    - name: Install Nginx
+      apt:
+        name: nginx
+        state: present
+        update_cache: yes
+
+    - name: Stop nginx service
+      service:
+        name: nginx
+        state: stopped
+
+    - name: Remove all existing site configurations
+      shell: |
+        rm -f /etc/nginx/sites-enabled/*
+        rm -f /etc/nginx/sites-available/reverse_proxy
+
+
+    - name: Configure Nginx reverse proxy
+      template:
+        src: reverse_proxy.j2
+        dest: /etc/nginx/sites-available/reverse_proxy
+      notify: 
+        - Start nginx
+        - Reload nginx
+
+    - name: Enable site
+      file:
+        src: /etc/nginx/sites-available/reverse_proxy
+        dest: /etc/nginx/sites-enabled/reverse_proxy
+        state: link
+
+    - name: Test nginx configuration
+      command: nginx -t
+      register: nginx_test
+      failed_when: nginx_test.rc != 0
+
+  handlers:
+    - name: Start nginx
+      service:
+        name: nginx
+        state: started
+        
+    - name: Reload nginx
+      service:
+        name: nginx
+        state: reloaded

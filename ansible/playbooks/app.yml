@@ -1,0 +1,108 @@
+---
+- name: Deploy Flask + Postgres App with Docker Compose
+  hosts: app
+  become: yes
+
+  tasks:
+
+    - name: Remove old versions of Docker if present
+      apt:
+        name:
+          - docker
+          - docker-engine
+          - docker.io
+          - containerd
+          - runc
+        state: absent
+        purge: yes
+
+    - name: Install dependencies
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+        state: present
+        update_cache: yes
+
+    - name: Add Docker GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker repository
+      apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+        filename: docker
+
+    - name: Install Docker CE and Compose plugin
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        state: present
+        update_cache: yes
+
+    - name: Ensure Docker service is running
+      service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Add ubuntu user to docker group
+      user:
+        name: ubuntu
+        groups: docker
+        append: yes
+
+    - name: Create deployment directory
+      file:
+        path: /home/ubuntu/deployment
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        mode: '0755'
+
+    - name: Copy application directory
+      copy:
+        src: ../../app/
+        dest: /home/ubuntu/deployment/app/
+        owner: ubuntu
+        group: ubuntu
+        mode: '0644'
+        directory_mode: '0755'
+
+    - name: Copy docker-compose.yml
+      copy:
+        src: ../../docker-compose.yml
+        dest: /home/ubuntu/deployment/
+        owner: ubuntu
+        group: ubuntu
+        mode: '0644'
+
+    - name: Copy init.sql
+      copy:
+        src: ../../init.sql
+        dest: /home/ubuntu/deployment/
+        owner: ubuntu
+        group: ubuntu
+        mode: '0644'
+
+    - name: Stop any existing containers
+      command: docker compose down
+      args:
+        chdir: /home/ubuntu/deployment
+      become_user: ubuntu
+      ignore_errors: yes
+
+    - name: Run docker compose up
+      command: docker compose up -d --build
+      args:
+        chdir: /home/ubuntu/deployment
+      become_user: ubuntu
