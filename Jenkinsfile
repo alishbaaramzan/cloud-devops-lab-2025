@@ -1,5 +1,9 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'python:3.10'   // official Python image
+        }
+    }
 
     stages {
         stage('Checkout') {
@@ -13,7 +17,7 @@ pipeline {
         stage('Install Deps') {
             steps {
                 sh '''
-                    python3 -m venv venv
+                    python -m venv venv
                     . venv/bin/activate
                     pip install --upgrade pip
                     pip install -r requirements.txt
@@ -21,16 +25,21 @@ pipeline {
             }
         }
 
-
         stage('Lint') {
             steps {
-                sh 'flake8 app/ --exit-zero'
+                sh '''
+                    . venv/bin/activate
+                    flake8 app/ --exit-zero
+                '''
             }
         }
 
         stage('Test') {
             steps {
-                sh 'pytest tests/ --maxfail=1 --disable-warnings -q || true'
+                sh '''
+                    . venv/bin/activate
+                    pytest tests/ --maxfail=1 --disable-warnings -q || true
+                '''
             }
         }
 
@@ -38,10 +47,11 @@ pipeline {
             steps {
                 withCredentials([sshUserPrivateKey(credentialsId: 'ansible-key', keyFileVariable: 'SSH_KEY')]) {
                     sh '''
-                    ansible-playbook \
-                      -i ansible/inventory/hosts.ini \
-                      ansible/playbooks/app.yml \
-                      --private-key $SSH_KEY
+                        . venv/bin/activate
+                        ansible-playbook \
+                          -i ansible/inventory/hosts.ini \
+                          ansible/playbooks/app.yml \
+                          --private-key $SSH_KEY
                     '''
                 }
             }
